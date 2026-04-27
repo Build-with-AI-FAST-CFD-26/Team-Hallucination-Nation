@@ -1,0 +1,235 @@
+import React, { useState } from "react";
+import { useAuth } from "../lib/auth-context.tsx";
+import { analyzeApplication } from "../lib/api.ts";
+import { RecruiterAnalysis } from "../types";
+import { LoadingSpinner } from "../components/UIElements.tsx";
+import { Upload, FileText, CheckCircle2, XCircle, AlertCircle, Copy, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import toast from "react-hot-toast";
+
+export default function RecruiterPage() {
+  const { user } = useAuth();
+  const [jd, setJd] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<RecruiterAnalysis | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type !== "application/pdf") {
+        toast.error("Please upload a PDF file");
+        return;
+      }
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        toast.error("File size should be less than 5MB");
+        return;
+      }
+      setFile(selectedFile);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!file || !jd) return;
+    setIsLoading(true);
+    try {
+      const analysis = await analyzeApplication(file, jd, user?.uid);
+      setResult(analysis);
+    } catch (error) {
+      toast.error("Analysis failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  return (
+    <div className="max-w-[1200px] mx-auto px-6 py-8">
+      <div className="grid md:grid-cols-[450px_1fr] gap-12 items-start">
+        {/* Left Panel: Inputs */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4 block">Job Description</label>
+            <textarea
+              value={jd}
+              onChange={(e) => setJd(e.target.value)}
+              placeholder="Paste the full job description you applied to..."
+              className="w-full bg-[#1A1A24] border border-[#2A2A3A] rounded-xl px-4 py-3 text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all min-h-[220px] resize-none text-sm leading-relaxed"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4 block">Your CV</label>
+            <div 
+              className={cn(
+                "relative border-2 border-dashed border-[#2A2A3A] rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all group",
+                file ? "bg-indigo-500/5 border-indigo-500/50" : "bg-[#111118] hover:border-indigo-500/30"
+              )}
+            >
+              <input 
+                type="file" 
+                accept=".pdf" 
+                onChange={handleFileChange} 
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-4 text-indigo-400 group-hover:scale-110 transition-transform">
+                <Upload className="w-6 h-6" />
+              </div>
+              <p className="text-white font-medium mb-1">
+                {file ? file.name : "Drop your CV here or click"}
+              </p>
+              <p className="text-slate-500 text-xs">PDF only · Max 5MB</p>
+              
+              {file && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                  className="mt-4 text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Remove file
+                </button>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={!file || !jd || isLoading}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-3"
+          >
+            {isLoading ? (
+              <>
+                <LoadingSpinner className="w-5 h-5" />
+                Reviewing your application...
+              </>
+            ) : (
+              <>
+                "Analyze My Application →"
+              </>
+            )}
+          </button>
+
+          <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+            Your CV is analyzed in real time and not stored permanently.<br />
+            Feedback is generated by Gemini 1.5 Pro.
+          </p>
+        </motion.div>
+
+        {/* Right Panel: Results */}
+        <div className="min-h-[400px]">
+          <AnimatePresence mode="wait">
+            {!result ? (
+              <motion.div 
+                key="empty"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                className="h-full border border-[#2A2A3A] border-dashed rounded-2xl flex flex-col items-center justify-center p-12 text-center"
+              >
+                <div className="w-16 h-16 bg-[#1A1A24] rounded-full flex items-center justify-center mb-6 text-slate-600">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-400 mb-2">Awaiting Analysis</h3>
+                <p className="text-slate-500 text-sm max-w-sm">
+                  Complete the fields on the left and upload your CV to see the brutally honest truth about your application.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="results"
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="space-y-8"
+              >
+                {/* Decision Banner */}
+                <div 
+                  className={cn(
+                    "w-full rounded-2xl p-8 border flex flex-col gap-2",
+                    result.decision === "Shortlist" ? "bg-emerald-500/10 border-emerald-500/30" :
+                    result.decision === "Maybe" ? "bg-amber-500/10 border-amber-500/30" :
+                    "bg-red-500/10 border-red-500/30"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {result.decision === "Shortlist" ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> :
+                     result.decision === "Maybe" ? <AlertCircle className="w-8 h-8 text-amber-500" /> :
+                     <XCircle className="w-8 h-8 text-red-500" />}
+                    <h2 className={cn(
+                      "text-3xl font-bold italic uppercase tracking-tighter",
+                      result.decision === "Shortlist" ? "text-emerald-500" :
+                      result.decision === "Maybe" ? "text-amber-500" :
+                      "text-red-500"
+                    )}>
+                      {result.decision === "Shortlist" ? "✓ Shortlist" :
+                       result.decision === "Maybe" ? "◎ Maybe" :
+                       "✕ Reject"}
+                    </h2>
+                  </div>
+                  <p className="text-slate-300 font-medium leading-relaxed">{result.reason}</p>
+                </div>
+
+                {/* Weak Lines Section */}
+                <div>
+                  <h4 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4">What Hurt You</h4>
+                  <div className="grid gap-4">
+                    {result.weak_lines.map((line, i) => (
+                      <div key={i} className="bg-red-500/5 border border-red-500/20 border-l-4 border-l-red-500 rounded-xl p-5 group">
+                        <div className="flex flex-col gap-4">
+                          <p className="text-slate-400 text-xs italic">"{line}"</p>
+                          <div className="flex items-start gap-3">
+                            <ArrowRight className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-slate-100 font-medium mb-3">{result.improved_lines[i]}</p>
+                              <button 
+                                onClick={() => copyToClipboard(result.improved_lines[i])}
+                                className="text-[10px] font-bold text-slate-500 hover:text-white flex items-center gap-1.5 transition-colors uppercase tracking-widest"
+                              >
+                                <Copy className="w-3 h-3" />
+                                Copy improved line
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interview Questions */}
+                <div>
+                  <h4 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4">Likely Interview Questions</h4>
+                  <div className="grid gap-3">
+                    {result.interview_questions.map((q, i) => (
+                      <div key={i} className="bg-[#111118] border border-[#2A2A3A] rounded-xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <span className="w-6 h-6 bg-indigo-500/10 text-indigo-400 text-xs font-bold rounded-full flex items-center justify-center shrink-0">
+                            {i + 1}
+                          </span>
+                          <p className="text-slate-200 text-sm font-medium">{q}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">Prepare this</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => { setResult(null); }}
+                  className="w-full border border-[#2A2A3A] hover:bg-[#1A1A24] text-slate-400 hover:text-white font-medium py-3 rounded-lg transition-all"
+                >
+                  Try Again
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Utility import needed for cn
+import { cn } from "../lib/utils.ts";

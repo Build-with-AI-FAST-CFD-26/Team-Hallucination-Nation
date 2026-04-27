@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Information about the student",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "displayName", "createdAt"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "A debug or recruiter session",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["debugger", "recruiter"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "problem": { "type": "string" },
+        "conceptIdentified": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string" },
+              "content": { "type": "string" }
+            }
+          }
+        },
+        "jobDescription": { "type": "string" },
+        "decision": { "type": "string" },
+        "reason": { "type": "string" },
+        "weakLines": { "type": "array", "items": { "type": "string" } },
+        "improvedLines": { "type": "array", "items": { "type": "string" } },
+        "interviewQuestions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["type", "createdAt"]
+    },
+    "WeakSpot": {
+      "title": "WeakSpot",
+      "description": "A concept the student struggles with",
+      "type": "object",
+      "properties": {
+        "concept": { "type": "string" },
+        "count": { "type": "number" },
+        "lastSeen": { "type": "string", "format": "date-time" }
+      },
+      "required": ["concept", "count", "lastSeen"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "History of user activity"
+    },
+    "/users/{userId}/weakSpots/{conceptId}": {
+      "schema": "WeakSpot",
+      "description": "Aggregated weak spots for the user"
+    }
+  }
+}
