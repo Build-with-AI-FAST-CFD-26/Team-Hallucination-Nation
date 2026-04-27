@@ -7,6 +7,8 @@ import * as pdf from "pdf-parse";
 import admin from "firebase-admin";
 import { askDebugger, analyzeCV } from "./src/services/gemini.ts";
 import fs from "fs";
+import cors from "cors";
+import { ghostRecruiterRouter } from "./src/ghost-recruiter";
 
 // Initialize Firebase Admin
 // In AI Studio, we can often initialize without explicit certs if the project ID is known
@@ -25,6 +27,12 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+  app.use(
+    cors({
+      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      credentials: true
+    })
+  );
 
   const upload = multer({ storage: multer.memoryStorage() });
 
@@ -32,6 +40,9 @@ async function startServer() {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
+
+  // Ghost Recruiter Module (Backend-only CV evaluation)
+  app.use("/api/ghost-recruiter", ghostRecruiterRouter);
 
   app.post("/api/debugger/ask", async (req, res) => {
     const { problem, attempt, history, userId } = req.body;
