@@ -25,6 +25,31 @@ export class AIProviderService {
   private static maxRetries = AI_CONFIG.MAX_RETRIES;
 
   /**
+   * Health check for AI provider availability
+   */
+  static async healthCheck(): Promise<{ healthy: boolean; latencyMs: number }> {
+    if (!this.apiKey) {
+      return { healthy: false, latencyMs: 0 };
+    }
+
+    const start = Date.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`,
+        { method: 'GET', signal: controller.signal }
+      );
+
+      clearTimeout(timeoutId);
+      return { healthy: response.ok, latencyMs: Date.now() - start };
+    } catch {
+      return { healthy: false, latencyMs: Date.now() - start };
+    }
+  }
+
+  /**
    * Call Gemini API to evaluate CV
    */
   static async evaluateCV(

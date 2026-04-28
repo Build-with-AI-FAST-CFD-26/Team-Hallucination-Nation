@@ -21,6 +21,23 @@ export function extractJSONFromResponse(text: string): string {
 }
 
 /**
+ * Aggressively repair common JSON syntax errors
+ * - Trailing commas
+ * - Single quotes
+ * - Unquoted keys
+ */
+export function aggressiveJSONRepair(rawText: string): string {
+  let cleaned = rawText;
+  // Fix trailing commas before } or ]
+  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+  // Fix single quotes to double quotes
+  cleaned = cleaned.replace(/'/g, '"');
+  // Fix unquoted object keys
+  cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+  return cleaned;
+}
+
+/**
  * Safely parse AI response JSON with fallback
  */
 export function parseAIResponse(rawText: string): {
@@ -33,7 +50,14 @@ export function parseAIResponse(rawText: string): {
     const cleanedText = extractJSONFromResponse(rawText);
 
     // Attempt parse
-    const parsed = JSON.parse(cleanedText);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanedText);
+    } catch {
+      // Try aggressive repair
+      const repaired = aggressiveJSONRepair(cleanedText);
+      parsed = JSON.parse(repaired);
+    }
 
     // Validate required fields
     const required = [

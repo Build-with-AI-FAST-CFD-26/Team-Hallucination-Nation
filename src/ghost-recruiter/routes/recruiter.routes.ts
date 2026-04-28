@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { RecruiterController } from '../controllers/recruiter.controller';
 import { validateEvaluationRequestMiddleware } from '../middleware/validation.middleware';
 import { errorHandlerMiddleware } from '../middleware/error-handler.middleware';
@@ -6,13 +7,38 @@ import { errorHandlerMiddleware } from '../middleware/error-handler.middleware';
 const router = Router();
 
 /**
+ * Multer upload configuration for PDF files
+ */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (_req: any, file: any, cb: any) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  }
+});
+
+/**
  * POST /api/ghost-recruiter/analyze
- * Evaluate CV against job description
+ * Evaluate CV (text) against job description
  */
 router.post(
   '/analyze',
   validateEvaluationRequestMiddleware,
   RecruiterController.analyzeCVController
+);
+
+/**
+ * POST /api/ghost-recruiter/analyze-file
+ * Evaluate CV (PDF upload) against job description
+ */
+router.post(
+  '/analyze-file',
+  upload.single('cv'),
+  RecruiterController.analyzeCVFileController
 );
 
 /**

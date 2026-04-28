@@ -37,6 +37,6 @@ export interface AIProviderResponse {
 export interface AIProviderError {
   code: string;
   message: string;
-  status: number;
+  status: string;
   retryable: boolean;
 }

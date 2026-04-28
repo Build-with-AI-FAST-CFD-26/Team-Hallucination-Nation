@@ -26,7 +26,7 @@ export class EvaluatorService {
 
       if (!aiResult.success) {
         // AI provider error
-        let statusCode = HTTP_STATUS.SERVICE_UNAVAILABLE;
+        let statusCode: number = HTTP_STATUS.SERVICE_UNAVAILABLE;
 
         if (aiResult.error?.code === ERROR_CODES.RATE_LIMIT_EXCEEDED) {
           statusCode = HTTP_STATUS.TOO_MANY_REQUESTS;

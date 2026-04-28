@@ -78,7 +78,12 @@ async function startServer() {
     }
   });
 
+  // LEGACY ROUTE — DEPRECATED
+  // Migrate to POST /api/ghost-recruiter/analyze-file
+  // Kept as fallback until frontend fully migrated
   app.post("/api/recruiter/analyze", upload.single("cv"), async (req: Request, res) => {
+    console.warn("[DEPRECATED] /api/recruiter/analyze called — migrate to /api/ghost-recruiter/analyze-file");
+
     const { job_description, user_id } = req.body;
     const cvFile = (req as any).file;
 

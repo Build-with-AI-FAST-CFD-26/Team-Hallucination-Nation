@@ -10,13 +10,18 @@ export const askDebugger = async (problem: string, attempt: string, history: Mes
   return response.data;
 };
 
+/**
+ * Analyze CV application using the Ghost Recruiter module
+ * Supports PDF upload with job description
+ */
 export const analyzeApplication = async (cv: File, jobDescription: string, userId?: string) => {
   const formData = new FormData();
   formData.append("cv", cv);
   formData.append("job_description", jobDescription);
-  if (userId) formData.append("user_id", userId);
+  formData.append("role_title", ""); // optional, can be populated from UI later
+  if (userId) formData.append("candidate_name", userId);
 
-  const response = await api.post("/recruiter/analyze", formData, {
+  const response = await api.post("/ghost-recruiter/analyze-file", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
