@@ -1,0 +1,4 @@
+This is a dummy CV for a React Developer.
+Experience: 5 years in React, Node.js, and Firebase.
+Education: BS in Computer Science.
+Projects: Built an e-commerce app with React and Firebase.

@@ -79,22 +79,44 @@ async function startServer() {
     }
   });
 
-  // Vite Integration
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  });
+  // Vite Integration & Static Serving
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  } else {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  }
 
-  app.use(vite.middlewares);
+  // Only start the listener if we are running the file directly (not as a serverless function)
+  if (process.env.NODE_ENV !== "production" || process.env.VERCEL_ENV === undefined) {
+    app.listen(PORT, () => {
+      console.log("------------------------------------------");
+      console.log(`--- LOOP SERVER VERSION 2.0 ACTIVE ---`);
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log("------------------------------------------");
+    });
+  }
 
-  app.listen(PORT, () => {
-    console.log("------------------------------------------");
-    console.log(`--- LOOP SERVER VERSION 2.0 ACTIVE ---`);
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log("------------------------------------------");
-  });
+  return app;
 }
 
-startServer().catch(err => {
+export const appPromise = startServer().catch(err => {
   console.error("Failed to start server:", err);
 });
+
+// For Vercel serverless functions
+export default async (req: any, res: any) => {
+  const app = await appPromise;
+  if (app) {
+    app(req, res);
+  } else {
+    res.status(500).send("Server failed to start");
+  }
+};
