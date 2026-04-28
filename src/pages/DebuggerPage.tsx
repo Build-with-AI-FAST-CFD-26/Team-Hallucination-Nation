@@ -1,7 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { useAuth } from "../lib/auth-context.tsx";
+import { useDebugger } from "../lib/debugger-context.tsx";
 import { askDebugger } from "../lib/api.ts";
 import { Message } from "../types";
+import { db } from "../lib/firebase.ts";
+import { collection, addDoc, serverTimestamp, doc, setDoc, increment } from "firebase/firestore";
 import { MessageBubble, LoadingSpinner } from "../components/UIElements.tsx";
 import { Send, Terminal, PlayCircle, Sparkles, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -9,13 +12,17 @@ import toast from "react-hot-toast";
 
 export default function DebuggerPage() {
   const { user } = useAuth();
-  const [problem, setProblem] = useState("");
-  const [attempt, setAttempt] = useState("");
-  const [reply, setReply] = useState("");
-  const [history, setHistory] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSessionActive, setIsSessionActive] = useState(false);
-  const [conceptIdentified, setConceptIdentified] = useState<string | null>(null);
+  const { 
+    problem, setProblem, 
+    attempt, setAttempt, 
+    history, setHistory, 
+    isSessionActive, setIsSessionActive,
+    conceptIdentified, setConceptIdentified,
+    clearSession
+  } = useDebugger();
+
+  const [reply, setReply] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -57,8 +64,36 @@ export default function DebuggerPage() {
 
     try {
       const result = await askDebugger(problem, currentReply, history, user?.uid);
-      setHistory([...newHistory, { role: "loop", content: result.response }]);
-      if (result.isComplete) setConceptIdentified(result.conceptIdentified);
+      const updatedHistory = [...newHistory, { role: "loop", content: result.response }];
+      setHistory(updatedHistory);
+      
+      if (result.isComplete) {
+        setConceptIdentified(result.conceptIdentified);
+        
+        // Save to Firestore directly from frontend
+        if (user) {
+          try {
+            await addDoc(collection(db, `users/${user.uid}/sessions`), {
+              type: "debugger",
+              createdAt: serverTimestamp(),
+              problem,
+              conceptIdentified: result.conceptIdentified,
+              messages: updatedHistory
+            });
+
+            const conceptId = result.conceptIdentified.toLowerCase().replace(/\s+/g, "_");
+            await setDoc(doc(db, `users/${user.uid}/weakSpots`, conceptId), {
+              concept: result.conceptIdentified,
+              count: increment(1),
+              lastSeen: serverTimestamp()
+            }, { merge: true });
+            
+            console.log("Progress saved to Firestore!");
+          } catch (fsError) {
+            console.error("Failed to save progress to Firestore:", fsError);
+          }
+        }
+      }
     } catch (error) {
       toast.error("Failed to send reply");
     } finally {
@@ -113,7 +148,7 @@ export default function DebuggerPage() {
         
         {isSessionActive && (
           <button 
-            onClick={() => { setIsSessionActive(false); setHistory([]); setConceptIdentified(null); }}
+            onClick={clearSession}
             className="text-xs text-red-400 hover:text-red-300 transition-colors"
           >
             End Session

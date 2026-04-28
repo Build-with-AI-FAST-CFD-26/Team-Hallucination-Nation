@@ -17,26 +17,40 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       if (!user) return;
-      try {
-        // Fetch last 5 sessions
-        const sessionsQuery = query(
-          collection(db, `users/${user.uid}/sessions`),
-          orderBy("createdAt", "desc"),
-          limit(5)
-        );
-        const sessionsSnap = await getDocs(sessionsQuery);
-        const sessionsData = sessionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
-        setSessions(sessionsData);
+      
+      // 1. Try to load from cache for instant display
+      const cachedSessions = localStorage.getItem(`cache_sessions_${user.uid}`);
+      const cachedWeakSpots = localStorage.getItem(`cache_weak_spots_${user.uid}`);
+      
+      if (cachedSessions && cachedWeakSpots) {
+        setSessions(JSON.parse(cachedSessions));
+        setWeakSpots(JSON.parse(cachedWeakSpots));
+        setLoading(false); // Stop showing the spinner immediately
+      }
 
-        // Fetch weak spots
-        const weakSpotsQuery = query(
-          collection(db, `users/${user.uid}/weakSpots`),
-          orderBy("count", "desc"),
-          limit(6)
-        );
-        const weakSpotsSnap = await getDocs(weakSpotsQuery);
-        const weakSpotsData = weakSpotsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as WeakSpot));
+      try {
+        const sessionsQuery = query(collection(db, `users/${user.uid}/sessions`), limit(50));
+        const weakSpotsQuery = query(collection(db, `users/${user.uid}/weakSpots`), limit(20));
+
+        const [sessionsSnap, weakSpotsSnap] = await Promise.all([
+          getDocs(sessionsQuery),
+          getDocs(weakSpotsQuery)
+        ]);
+
+        const sessionsData = sessionsSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Session))
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        
+        const weakSpotsData = weakSpotsSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as WeakSpot))
+          .sort((a, b) => (b.count || 0) - (a.count || 0));
+
+        setSessions(sessionsData);
         setWeakSpots(weakSpotsData);
+
+        // 2. Save to cache for next time
+        localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify(sessionsData));
+        localStorage.setItem(`cache_weak_spots_${user.uid}`, JSON.stringify(weakSpotsData));
       } catch (error) {
         console.error("Dashboard error:", error);
       } finally {
@@ -46,10 +60,9 @@ export default function DashboardPage() {
     fetchData();
   }, [user]);
 
-  if (loading) return <LoadingSpinner className="h-[calc(100vh-60px)]" />;
-
   const firstName = user?.displayName?.split(" ")[0] || "there";
-  const totalSessions = sessions.length; // This is actually just limited to 5 in this view, but fine for prototype
+  const solvedSessions = sessions.filter(s => s.type === "debugger" && !!s.conceptIdentified);
+  const totalSessions = sessions.length; 
   const topConcept = weakSpots[0]?.concept || "None yet";
 
   return (
@@ -63,8 +76,8 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-3 gap-6 mb-12">
         {[
           { label: "Total Sessions", value: totalSessions, sub: "Debugger sessions" },
-          { label: "Applications Reviewed", value: sessions.filter(s => s.type === "recruiter").length, sub: "Ghost recruiter" },
-          { label: "Top Weak Concept", value: topConcept, sub: "Most struggled", highlight: true },
+          { label: "Solved Problems", value: solvedSessions.length, sub: "Successfully cleared", highlight: true },
+          { label: "Top Weak Concept", value: topConcept, sub: "Most struggled" },
         ].map((stat, i) => (
           <div key={i} className="bg-[#111118] border border-[#2A2A3A] rounded-xl p-6 relative overflow-hidden group">
             {stat.highlight && <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-2xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/10 transition-all" />}
@@ -127,12 +140,13 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Recent Activity */}
-        <section>
-          <div className="flex items-center gap-3 mb-8">
-            <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          </div>
+        <section className="space-y-12">
+          {/* Recent Activity */}
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            </div>
 
           {sessions.length === 0 ? (
             <div className="text-center py-12 px-6 border border-dashed border-[#2A2A3A] rounded-xl">
@@ -154,7 +168,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {sessions.map(session => (
+              {sessions.slice(0, 5).map(session => (
                 <div key={session.id} className="bg-[#111118] border border-[#2A2A3A] p-4 rounded-xl flex items-center gap-4 group hover:bg-[#1A1A24] transition-all">
                   <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400 shrink-0">
                     {session.type === "debugger" ? <Brain className="w-5 h-5" /> : <FileSearch className="w-5 h-5" />}
@@ -185,6 +199,35 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+          </div>
+
+          {/* Solved Problems */}
+          <div>
+            <div className="flex items-center gap-3 mb-8">
+              <h2 className="text-2xl font-bold text-white">Solved Problems</h2>
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
+
+            {solvedSessions.length === 0 ? (
+              <div className="bg-[#111118] border border-dashed border-[#2A2A3A] rounded-xl p-8 text-center text-slate-500 text-sm">
+                You haven't completed any debug sessions yet. Keep practicing!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {solvedSessions.map((session, idx) => (
+                  <div key={session.id} className="bg-gradient-to-r from-indigo-500/10 to-transparent border border-indigo-500/20 p-4 rounded-xl flex items-center gap-4">
+                    <div className="w-8 h-8 bg-indigo-500/20 rounded-full flex items-center justify-center text-indigo-400 font-bold text-sm shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-white truncate">{session.problem || "Coding Problem"}</h4>
+                      <p className="text-xs text-indigo-300 mt-1">Learned: {session.conceptIdentified}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>
