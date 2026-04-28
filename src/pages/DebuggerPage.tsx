@@ -34,6 +34,49 @@ export default function DebuggerPage() {
     scrollToBottom();
   }, [history, isLoading]);
 
+  const saveSessionToFirestore = async (conceptIdentified: string, currentHistory: Message[]) => {
+    if (!user) return;
+    try {
+      // 1. Save to Firestore
+      const sessionData = {
+        type: "debugger",
+        createdAt: serverTimestamp(),
+        problem,
+        conceptIdentified: conceptIdentified,
+        messages: currentHistory
+      };
+      
+      const docRef = await addDoc(collection(db, `users/${user.uid}/sessions`), sessionData);
+
+      const conceptId = conceptIdentified.toLowerCase().replace(/\s+/g, "_");
+      await setDoc(doc(db, `users/${user.uid}/weakSpots`, conceptId), {
+        concept: conceptIdentified,
+        count: increment(1),
+        lastSeen: serverTimestamp()
+      }, { merge: true });
+
+      // 2. Update Local Cache for instant Dashboard update
+      const cachedSessions = localStorage.getItem(`cache_sessions_${user.uid}`);
+      let sessions = [];
+      if (cachedSessions) {
+        try {
+          sessions = JSON.parse(cachedSessions);
+        } catch (e) {
+          sessions = [];
+        }
+      }
+      
+      const newSession = { ...sessionData, id: docRef.id, createdAt: { seconds: Math.floor(Date.now() / 1000) } };
+      localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify([newSession, ...sessions.slice(0, 49)]));
+      
+      console.log("Progress saved permanently!");
+      toast.success("Goal reached! Progress saved to Dashboard.");
+    } catch (fsError: any) {
+      console.error("Failed to save progress:", fsError);
+      toast.error("Database Error: Could not save to Firestore. Check your Rules!");
+    }
+  };
+
   const handleStart = async () => {
     if (!problem || !attempt) return;
     setIsLoading(true);
@@ -43,8 +86,13 @@ export default function DebuggerPage() {
 
     try {
       const result = await askDebugger(problem, attempt, [], user?.uid);
-      setHistory([{ role: "loop", content: result.response }]);
-      if (result.isComplete) setConceptIdentified(result.conceptIdentified);
+      const initialLoopMessage = { role: "loop" as const, content: result.response };
+      setHistory([initialLoopMessage]);
+      
+      if (result.isComplete && result.conceptIdentified) {
+        setConceptIdentified(result.conceptIdentified);
+        await saveSessionToFirestore(result.conceptIdentified, [initialLoopMessage]);
+      }
     } catch (error) {
       toast.error("Failed to start session");
       setIsSessionActive(false);
@@ -58,41 +106,18 @@ export default function DebuggerPage() {
     const currentReply = reply;
     setReply("");
     setIsLoading(true);
-
-    const newHistory: Message[] = [...history, { role: "user", content: currentReply }];
+    
+    const newHistory: Message[] = [...history, { role: "user" as const, content: currentReply }];
     setHistory(newHistory);
 
     try {
       const result = await askDebugger(problem, currentReply, history, user?.uid);
-      const updatedHistory = [...newHistory, { role: "loop", content: result.response }];
+      const updatedHistory: Message[] = [...newHistory, { role: "loop" as const, content: result.response }];
       setHistory(updatedHistory);
       
-      if (result.isComplete) {
+      if (result.isComplete && result.conceptIdentified) {
         setConceptIdentified(result.conceptIdentified);
-        
-        // Save to Firestore directly from frontend
-        if (user) {
-          try {
-            await addDoc(collection(db, `users/${user.uid}/sessions`), {
-              type: "debugger",
-              createdAt: serverTimestamp(),
-              problem,
-              conceptIdentified: result.conceptIdentified,
-              messages: updatedHistory
-            });
-
-            const conceptId = result.conceptIdentified.toLowerCase().replace(/\s+/g, "_");
-            await setDoc(doc(db, `users/${user.uid}/weakSpots`, conceptId), {
-              concept: result.conceptIdentified,
-              count: increment(1),
-              lastSeen: serverTimestamp()
-            }, { merge: true });
-            
-            console.log("Progress saved to Firestore!");
-          } catch (fsError) {
-            console.error("Failed to save progress to Firestore:", fsError);
-          }
-        }
+        await saveSessionToFirestore(result.conceptIdentified, updatedHistory);
       }
     } catch (error) {
       toast.error("Failed to send reply");

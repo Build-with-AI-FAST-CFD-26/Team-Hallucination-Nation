@@ -142,7 +142,8 @@ export class AIProviderService {
     data?: AIProviderResponse;
     error?: AIProviderError;
   }> {
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    const modelName = this.model || 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
     const payload = {
       contents: [

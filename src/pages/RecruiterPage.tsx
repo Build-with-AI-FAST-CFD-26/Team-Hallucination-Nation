@@ -5,6 +5,9 @@ import { RecruiterAnalysis } from "../types";
 import { LoadingSpinner } from "../components/UIElements.tsx";
 import { Upload, FileText, CheckCircle2, XCircle, AlertCircle, Copy, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { db } from "../lib/firebase.ts";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { cn } from "../lib/utils.ts";
 import toast from "react-hot-toast";
 
 export default function RecruiterPage() {
@@ -35,6 +38,36 @@ export default function RecruiterPage() {
     try {
       const analysis = await analyzeApplication(file, jd, user?.uid);
       setResult(analysis);
+      
+      // Save to Firestore for Dashboard Activity
+      if (user) {
+        try {
+          await addDoc(collection(db, `users/${user.uid}/sessions`), {
+            type: "recruiter",
+            createdAt: serverTimestamp(),
+            decision: analysis.decision,
+            reason: analysis.reason,
+            jobDescription: jd.slice(0, 500) + "..."
+          });
+
+          // Update cache for instant Dashboard update
+          const cachedSessions = localStorage.getItem(`cache_sessions_${user.uid}`);
+          if (cachedSessions) {
+            const sessions = JSON.parse(cachedSessions);
+            const newSession = { 
+              id: Date.now().toString(), 
+              type: "recruiter", 
+              decision: analysis.decision,
+              createdAt: { seconds: Math.floor(Date.now() / 1000) } 
+            };
+            localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify([newSession, ...sessions.slice(0, 49)]));
+          }
+        } catch (fsError) {
+          console.error("Failed to log analysis:", fsError);
+        }
+      }
+
+      toast.success("Analysis complete!");
     } catch (error) {
       toast.error("Analysis failed. Please try again.");
     } finally {
@@ -107,7 +140,7 @@ export default function RecruiterPage() {
               </>
             ) : (
               <>
-                "Analyze My Application →"
+                Analyze My Application →
               </>
             )}
           </button>
@@ -230,6 +263,3 @@ export default function RecruiterPage() {
     </div>
   );
 }
-
-// Utility import needed for cn
-import { cn } from "../lib/utils.ts";

@@ -24,7 +24,7 @@ export const AI_CONFIG = {
   TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '30000'),
   MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES || '2'),
   PROVIDER: process.env.AI_PROVIDER || 'gemini',
-  MODEL: process.env.GEMINI_MODEL || 'gemini-pro',
+  MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   API_KEY: process.env.GEMINI_API_KEY || ''
 } as const;
 

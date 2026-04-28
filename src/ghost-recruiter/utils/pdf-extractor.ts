@@ -1,11 +1,12 @@
-import * as pdf from "pdf-parse";
+import * as _pdf from "pdf-parse";
+const pdf = (_pdf as any).default || _pdf;
 
 /**
  * Extract text content from a PDF buffer
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const data = await (pdf as any)(buffer);
+    const data = await pdf(buffer);
     return data.text || '';
   } catch (error) {
     console.error('PDF extraction failed:', error);

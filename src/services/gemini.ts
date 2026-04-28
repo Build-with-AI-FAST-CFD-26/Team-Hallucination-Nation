@@ -101,12 +101,13 @@ export async function askDebugger(problem: string, attempt: string, history: { r
       // SMART FALLBACK FOR DEMO
       console.warn("Gemini API failed, using simulator mode.");
       const responseIndex = Math.min(history.length, MOCK_RESPONSES.length - 1);
-      const isComplete = history.length > 15;
+      // Lowered to 5 messages for easier demoing
+      const isComplete = history.length >= 5;
       
       return {
         response: MOCK_RESPONSES[responseIndex],
         isComplete: isComplete,
-        conceptIdentified: isComplete ? "Problem Solving Logic" : null
+        conceptIdentified: isComplete ? "Core Logic & Syntax" : null
       };
     }
   }

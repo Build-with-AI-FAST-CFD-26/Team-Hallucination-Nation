@@ -1,5 +1,7 @@
 /**
  * @license
+/**
+ * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -10,5 +12,5 @@ import firebaseConfig from "../../firebase-applet-config.json" assert { type: "j
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
