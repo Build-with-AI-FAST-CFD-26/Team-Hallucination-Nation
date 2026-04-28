@@ -149,7 +149,8 @@ export async function analyzeCV(cvText: string, jobDescription: string) {
   try {
     const result = await model.generateContent(prompt);
     const response = result.response.text();
-    const jsonStr = response.replace(/```json\n?|\n?```/g, "").trim();
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : response;
     return JSON.parse(jsonStr);
   } catch (error) {
     return {

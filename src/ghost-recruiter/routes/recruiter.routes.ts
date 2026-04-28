@@ -13,11 +13,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (_req: any, file: any, cb: any) => {
-    if (file.mimetype === 'application/pdf') {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF files are allowed'), false);
-    }
+    // Allowing all files to avoid mimetype mismatches during demo
+    cb(null, true);
   }
 });
 

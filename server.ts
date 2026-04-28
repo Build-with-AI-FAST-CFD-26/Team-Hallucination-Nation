@@ -3,7 +3,9 @@ import express, { Request } from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import multer from "multer";
-import * as pdf from "pdf-parse";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdf = require("pdf-parse");
 import { askDebugger, analyzeCV } from "./src/services/gemini.ts";
 import fs from "fs";
 import cors from "cors";
@@ -52,7 +54,11 @@ async function startServer() {
     }
 
     try {
-      const data = await (pdf as any)(cvFile.buffer);
+      const parseFn = typeof pdf === 'function' ? pdf :
+        (typeof pdf.default === 'function' ? pdf.default :
+          (typeof pdf.PDFParse === 'function' ? pdf.PDFParse : null));
+      if (!parseFn) throw new Error("Could not resolve pdf-parse function");
+      const data = await parseFn(cvFile.buffer);
       const cvText = data.text;
       const result = await analyzeCV(cvText, job_description);
       res.json(result);
@@ -71,7 +77,10 @@ async function startServer() {
   app.use(vite.middlewares);
 
   app.listen(PORT, () => {
+    console.log("------------------------------------------");
+    console.log(`--- LOOP SERVER VERSION 2.0 ACTIVE ---`);
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log("------------------------------------------");
   });
 }
 

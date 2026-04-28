@@ -36,7 +36,9 @@ export default function RecruiterPage() {
     if (!file || !jd) return;
     setIsLoading(true);
     try {
-      const analysis = await analyzeApplication(file, jd, user?.uid);
+      const response: any = await analyzeApplication(file, jd, user?.uid);
+      // Handle the new nested data format correctly for TypeScript
+      const analysis = response.data || response;
       setResult(analysis);
       
       // Save to Firestore for Dashboard Activity
