@@ -1,0 +1,46 @@
+export const SCORING_WEIGHTS = {
+  TECHNICAL_SKILLS: 0.30,
+  PROJECT_IMPACT: 0.25,
+  EXPERIENCE_FIT: 0.20,
+  CV_CLARITY: 0.15,
+  RED_FLAGS: 0.10
+} as const;
+
+export const DECISION_THRESHOLDS = {
+  SHORTLIST: 75,
+  MAYBE: 55,
+  REJECT: 0
+} as const;
+
+export const INPUT_CONSTRAINTS = {
+  CV_TEXT: { min: 50, max: 10000 },
+  JOB_DESCRIPTION: { min: 20, max: 5000 },
+  ROLE_TITLE: { max: 100 },
+  COMPANY_NAME: { max: 100 },
+  CANDIDATE_NAME: { max: 100 }
+} as const;
+
+export const AI_CONFIG = {
+  TIMEOUT_MS: parseInt(process.env.AI_TIMEOUT_MS || '30000'),
+  MAX_RETRIES: parseInt(process.env.AI_MAX_RETRIES || '2'),
+  PROVIDER: process.env.AI_PROVIDER || 'gemini',
+  MODEL: process.env.GEMINI_MODEL || 'gemini-pro',
+  API_KEY: process.env.GEMINI_API_KEY || ''
+} as const;
+
+export const ERROR_CODES = {
+  INVALID_INPUT: 'INVALID_INPUT',
+  AI_SERVICE_UNAVAILABLE: 'AI_SERVICE_UNAVAILABLE',
+  INVALID_JSON_RESPONSE: 'INVALID_JSON_RESPONSE',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR'
+} as const;
+
+export const HTTP_STATUS = {
+  OK: 200,
+  BAD_REQUEST: 400,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503
+} as const;
