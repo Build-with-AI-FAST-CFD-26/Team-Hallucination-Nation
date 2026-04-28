@@ -18,6 +18,8 @@ export function formatEvaluationResponse(
     improved_lines: aiResponse.improved_lines || [],
     top_strengths: aiResponse.top_strengths || [],
     interview_questions: aiResponse.interview_questions || [],
+    roadmap: aiResponse.roadmap || [],
+    suggested_projects: aiResponse.suggested_projects || [],
     one_line_verdict: aiResponse.one_line_verdict,
     metadata: {
       evaluation_timestamp: new Date().toISOString(),

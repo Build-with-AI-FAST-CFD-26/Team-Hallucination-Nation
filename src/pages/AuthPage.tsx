@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../lib/auth-context.tsx";
 import { motion } from "motion/react";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
@@ -52,6 +52,11 @@ export default function AuthPage() {
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-md w-full bg-[#111118] border border-[#2A2A3A] rounded-3xl p-10 text-center shadow-2xl relative z-10"
       >
+        <div className="flex justify-start mb-6">
+          <Link to="/" className="text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1 uppercase tracking-widest">
+            ← Back to Home
+          </Link>
+        </div>
         <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/20">
           <div className="w-8 h-8 border-4 border-white rounded-full border-t-transparent animate-[spin_2s_linear_infinite]" />
         </div>

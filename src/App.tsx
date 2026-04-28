@@ -28,10 +28,25 @@ export default function App() {
             <Navbar />
             <main className="pt-[64px]">
               <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/welcome" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/debugger" element={<DebuggerPage />} />
-                <Route path="/recruiter" element={<RecruiterPage />} />
+                <Route
+                  path="/debugger"
+                  element={
+                    <ProtectedRoute>
+                      <DebuggerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/recruiter"
+                  element={
+                    <ProtectedRoute>
+                      <RecruiterPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/dashboard"
                   element={

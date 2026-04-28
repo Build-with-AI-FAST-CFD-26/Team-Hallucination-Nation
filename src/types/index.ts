@@ -26,6 +26,10 @@ export interface RecruiterAnalysis {
   /** Top strengths identified (optional, new in Phase 3) */
   top_strengths?: string[];
   interview_questions: string[];
+  /** Personalized learning roadmap for the candidate */
+  roadmap?: string[];
+  /** Suggested projects to bridge the gap for this job level */
+  suggested_projects?: { title: string; description: string }[];
   /** One-line verdict in recruiter tone (optional, new in Phase 3) */
   one_line_verdict?: string;
   /** Evaluation metadata (optional, new in Phase 3) */
@@ -34,6 +38,17 @@ export interface RecruiterAnalysis {
     model_used: string;
     processing_time_ms: number;
   };
+}
+
+export interface CodeVerificationResult {
+  isCorrect: boolean;
+  feedback: string;
+  failedEdgeCase?: string;
+  edgeCases?: {
+    case: string;
+    passed: boolean;
+    reason?: string;
+  }[];
 }
 
 export interface Session {
@@ -49,6 +64,15 @@ export interface Session {
   weakLines?: string[];
   improvedLines?: string[];
   interviewQuestions?: string[];
+  codeSubmission?: string;
+  codeVerified?: boolean;
+  verificationResult?: CodeVerificationResult;
+}
+
+export interface UserStats {
+  problemsSolved: number;
+  totalSessions: number;
+  lastActive: any;
 }
 
 export interface WeakSpot {

@@ -52,6 +52,12 @@ service cloud.firestore {
         allow get: if isOwner(userId);
         allow create, update: if isOwner(userId) && isValidWeakSpot(incoming());
       }
+
+      // User stats
+      match /stats/{statId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
     }
   }
 }

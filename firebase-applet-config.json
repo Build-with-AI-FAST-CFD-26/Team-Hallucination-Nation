@@ -1,9 +1,9 @@
 {
-  "projectId": "ellucination-nation",
-  "appId": "1:911596466272:web:0025c4c51fead37e0d1305",
   "apiKey": "AIzaSyAbfKmmerxvpEUN4lYHL_MMMLXN7lpGXew",
   "authDomain": "ellucination-nation.firebaseapp.com",
+  "projectId": "ellucination-nation",
   "storageBucket": "ellucination-nation.firebasestorage.app",
   "messagingSenderId": "911596466272",
+  "appId": "1:911596466272:web:0025c4c51fead37e0d1305",
   "measurementId": "G-WZNQDNEQDP"
 }

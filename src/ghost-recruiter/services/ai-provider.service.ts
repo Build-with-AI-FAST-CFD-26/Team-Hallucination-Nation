@@ -265,6 +265,14 @@ export class AIProviderService {
             "Can you walk me through a difficult technical challenge you faced in your React project?",
             "How do you handle disagreements within an agile development team?"
           ],
+          roadmap: [
+            "Master cloud-native architecture (AWS/Azure)",
+            "Implement advanced CI/CD pipelines",
+            "Focus on system scalability and performance optimization"
+          ],
+          suggested_projects: [
+            { "title": "Scalable Microservices App", "description": "Build a distributed application that demonstrates your ability to handle complex backends and high-traffic scenarios." }
+          ],
           one_line_verdict: "Strong foundation, but needs more data-driven results to stand out to elite recruiters."
         }
       };

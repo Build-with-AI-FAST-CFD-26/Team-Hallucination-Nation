@@ -4,10 +4,11 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { CodeVerificationResult } from "../types";
 
 let genAI: GoogleGenerativeAI | null = null;
 
-const MODEL_NAMES = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-flash-lite-latest"];
+const MODEL_NAMES = ["gemini-1.5-flash", "gemini-1.5-pro"];
 let currentModelName = MODEL_NAMES[0];
 
 function getGenAI() {
@@ -141,7 +142,11 @@ export async function analyzeCV(cvText: string, jobDescription: string) {
     "reason": "A 2-sentence summary of why this decision was made.",
     "weak_lines": ["Actual line from CV that is weak"],
     "improved_lines": ["The rewritten, stronger version of that line"],
-    "interview_questions": ["Question 1", "Question 2", "Question 3", "Question 4", "Question 5"]
+    "interview_questions": ["Question 1", "Question 2", "Question 3", "Question 4", "Question 5"],
+    "roadmap": ["Step 1: Skill to learn", "Step 2: Skill to learn", "Step 3: Skill to learn"],
+    "suggested_projects": [
+      { "title": "Project Name", "description": "Short description of the project and why it bridges the gap for this level." }
+    ]
   }
   
   Ensure the weak_lines and improved_lines match in index.`;
@@ -158,7 +163,58 @@ export async function analyzeCV(cvText: string, jobDescription: string) {
       "reason": "Strong technical background with relevant experience in full-stack development.",
       "weak_lines": ["Current role lacks specific focus on cloud architecture."],
       "improved_lines": ["Architected and deployed a scalable AWS-based infrastructure reducing downtime by 30%."],
-      "interview_questions": ["Explain your approach to system design.", "How do you handle conflict in a team?", "Describe a difficult bug you fixed.", "What is your experience with CI/CD?", "How do you keep your skills up to date?"]
+      "interview_questions": ["Explain your approach to system design.", "How do you handle conflict in a team?", "Describe a difficult bug you fixed.", "What is your experience with CI/CD?", "How do you keep your skills up to date?"],
+      "roadmap": ["Master AWS Lambda & Serverless patterns", "Deep dive into Kubernetes orchestration", "Implement complex CI/CD pipelines"],
+      "suggested_projects": [
+        { "title": "Multi-Region Cloud Arch", "description": "Build a globally distributed system that handles failover automatically using Route 53 and CloudFront." }
+      ]
+    };
+  }
+}
+export async function verifyCode(problem: string, code: string): Promise<CodeVerificationResult> {
+  const genAI = getGenAI();
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-pro",
+    systemInstruction: `You are a strict technical interviewer and code judge. 
+    Your task is to verify if the provided code correctly solves the given programming problem.
+    You must check for correctness, efficiency, and robustness against edge cases.
+    
+    RULES:
+    1. Be extremely strict. If there's a logical bug or missing edge case handling, mark it as incorrect.
+    2. Check at least 3-5 specific edge cases (e.g., empty input, large input, single element, negative numbers, duplicates).
+    3. Return your response in EXACT JSON format:
+    {
+      "isCorrect": boolean,
+      "feedback": "A concise explanation of why it is correct or incorrect.",
+      "failedEdgeCase": "Optional: Description of the specific edge case that failed",
+      "edgeCases": [
+        { "case": "Case description", "passed": boolean, "reason": "Why it passed/failed" }
+      ]
+    }`
+  });
+
+  const prompt = `PROBLEM:
+  "${problem}"
+  
+  STUDENT CODE:
+  """
+  ${code}
+  """
+  
+  Evaluate this code for correctness.`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : response;
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error("Code verification failed:", error);
+    return {
+      isCorrect: false,
+      feedback: "The verification service encountered an error. Please try again.",
+      failedEdgeCase: "Verification Error"
     };
   }
 }

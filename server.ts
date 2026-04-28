@@ -6,7 +6,7 @@ import multer from "multer";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const pdf = require("pdf-parse");
-import { askDebugger, analyzeCV } from "./src/services/gemini.ts";
+import { askDebugger, analyzeCV, verifyCode } from "./src/services/gemini.ts";
 import fs from "fs";
 import cors from "cors";
 import { ghostRecruiterRouter } from "./src/ghost-recruiter";
@@ -41,6 +41,17 @@ async function startServer() {
     } catch (error) {
       console.error("Debugger Error:", error);
       res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+
+  app.post("/api/debugger/verify-code", async (req, res) => {
+    const { problem, code } = req.body;
+    try {
+      const result = await verifyCode(problem, code);
+      res.json(result);
+    } catch (error) {
+      console.error("Verification Error:", error);
+      res.status(500).json({ error: "Failed to verify code" });
     }
   });
 

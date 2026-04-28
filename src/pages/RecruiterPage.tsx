@@ -3,10 +3,10 @@ import { useAuth } from "../lib/auth-context.tsx";
 import { analyzeApplication } from "../lib/api.ts";
 import { RecruiterAnalysis } from "../types";
 import { LoadingSpinner } from "../components/UIElements.tsx";
-import { Upload, FileText, CheckCircle2, XCircle, AlertCircle, Copy, ArrowRight } from "lucide-react";
+import { Upload, FileText, CheckCircle2, XCircle, AlertCircle, Copy, ArrowRight, Compass, Flag } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db } from "../lib/firebase.ts";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, setDoc, increment } from "firebase/firestore";
 import { cn } from "../lib/utils.ts";
 import toast from "react-hot-toast";
 
@@ -43,30 +43,41 @@ export default function RecruiterPage() {
       
       // Save to Firestore for Dashboard Activity
       if (user) {
-        try {
-          await addDoc(collection(db, `users/${user.uid}/sessions`), {
-            type: "recruiter",
-            createdAt: serverTimestamp(),
-            decision: analysis.decision,
-            reason: analysis.reason,
-            jobDescription: jd.slice(0, 500) + "..."
-          });
-
-          // Update cache for instant Dashboard update
-          const cachedSessions = localStorage.getItem(`cache_sessions_${user.uid}`);
-          if (cachedSessions) {
-            const sessions = JSON.parse(cachedSessions);
-            const newSession = { 
-              id: Date.now().toString(), 
-              type: "recruiter", 
+          try {
+            await addDoc(collection(db, `users/${user.uid}/sessions`), {
+              type: "recruiter",
+              createdAt: serverTimestamp(),
               decision: analysis.decision,
-              createdAt: { seconds: Math.floor(Date.now() / 1000) } 
-            };
-            localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify([newSession, ...sessions.slice(0, 49)]));
+              reason: analysis.reason,
+              jobDescription: jd.slice(0, 500) + "..."
+            });
+
+            // Update cache for instant Dashboard update
+            const cachedSessions = localStorage.getItem(`cache_sessions_${user.uid}`);
+            if (cachedSessions) {
+              const sessions = JSON.parse(cachedSessions);
+              const newSession = { 
+                id: Date.now().toString(), 
+                type: "recruiter", 
+                decision: analysis.decision,
+                createdAt: { seconds: Math.floor(Date.now() / 1000) } 
+              };
+              localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify([newSession, ...sessions.slice(0, 49)]));
+            }
+          } catch (sessionError) {
+            console.error("Failed to log session:", sessionError);
           }
-        } catch (fsError) {
-          console.error("Failed to log analysis:", fsError);
-        }
+
+          try {
+            // 2. Update Stats
+            const statsRef = doc(db, `users/${user.uid}/stats`, "overview");
+            await setDoc(statsRef, {
+              cvsAnalyzed: increment(1),
+              lastActive: serverTimestamp()
+            }, { merge: true });
+          } catch (statsError) {
+            console.error("Failed to update stats:", statsError);
+          }
       }
 
       toast.success("Analysis complete!");
@@ -233,19 +244,70 @@ export default function RecruiterPage() {
                   </div>
                 </div>
 
+                {/* Roadmap Section */}
+                {result.roadmap && result.roadmap.length > 0 && (
+                  <div>
+                    <h4 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4">Roadmap to Success</h4>
+                    <div className="bg-[#111118] border border-[#2A2A3A] rounded-2xl p-6 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <Compass className="w-24 h-24 text-indigo-400" />
+                      </div>
+                      <div className="space-y-6 relative z-10">
+                        {result.roadmap.map((step, i) => (
+                          <div key={i} className="flex gap-4 group">
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="w-6 h-6 bg-indigo-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shrink-0">
+                                {i + 1}
+                              </div>
+                              {i !== result.roadmap!.length - 1 && (
+                                <div className="w-0.5 h-full bg-[#2A2A3A] rounded-full" />
+                              )}
+                            </div>
+                            <div className="pb-4">
+                              <p className="text-slate-100 text-sm font-medium">{step}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Suggested Projects Section */}
+                {result.suggested_projects && result.suggested_projects.length > 0 && (
+                  <div>
+                    <h4 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4">Bridge the Gap: Suggested Projects</h4>
+                    <div className="grid gap-4">
+                      {result.suggested_projects.map((project, i) => (
+                        <div key={i} className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-6 hover:border-indigo-500/40 transition-all">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 shrink-0">
+                              <Flag className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h5 className="text-white font-bold mb-2">{project.title}</h5>
+                              <p className="text-slate-400 text-xs leading-relaxed">{project.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Interview Questions */}
                 <div>
                   <h4 className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-4">Likely Interview Questions</h4>
                   <div className="grid gap-3">
                     {result.interview_questions.map((q, i) => (
-                      <div key={i} className="bg-[#111118] border border-[#2A2A3A] rounded-xl p-4 flex items-center justify-between">
+                      <div key={i} className="bg-[#111118] border border-[#2A2A3A] rounded-xl p-4 flex items-center justify-between group hover:border-slate-700 transition-all">
                         <div className="flex items-center gap-4">
                           <span className="w-6 h-6 bg-indigo-500/10 text-indigo-400 text-xs font-bold rounded-full flex items-center justify-center shrink-0">
                             {i + 1}
                           </span>
                           <p className="text-slate-200 text-sm font-medium">{q}</p>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0">Prepare this</span>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">Prepare this</span>
                       </div>
                     ))}
                   </div>

@@ -84,6 +84,14 @@ export class RecruiterController {
             improved_lines: ["Architected and deployed a responsive React frontend, improving user engagement by 25%", "Collaborated in an agile team of 5 to launch a cross-platform mobile app used by 500+ users"],
             top_strengths: ["Strong React proficiency", "Modern UI/UX awareness", "Team collaboration"],
             interview_questions: ["Can you walk me through a technical challenge in your React project?", "How do you handle disagreements in a team?"],
+            roadmap: [
+              "Master advanced React patterns (HOCs, Hooks, Performance)",
+              "Learn backend integration with Node.js/Python",
+              "Build 2-3 portfolio projects with measurable metrics"
+            ],
+            suggested_projects: [
+              { "title": "Real-time Dashboard", "description": "Build a data-driven dashboard using Socket.io to show real-time updates and complex state management." }
+            ],
             one_line_verdict: "Strong foundation, but needs more data-driven results to stand out."
           }
         };
@@ -100,6 +108,14 @@ export class RecruiterController {
         weak_lines: ["General project descriptions"],
         improved_lines: ["Project descriptions with measurable results (e.g., 'reduced load time by 40%')"],
         interview_questions: ["Describe your most complex project.", "How do you handle tight deadlines?"],
+        roadmap: [
+          "Focus on quantifying project impacts in CV",
+          "Learn system design fundamentals",
+          "Strengthen core DS/Algo knowledge"
+        ],
+        suggested_projects: [
+          { "title": "Impact-driven Portfolio", "description": "Create a CV-focused project that specifically highlights measurable outcomes and optimizations." }
+        ],
         one_line_verdict: "Analysis ready. Focus on adding more metrics to your resume."
       });
     }

@@ -10,6 +10,11 @@ export const askDebugger = async (problem: string, attempt: string, history: Mes
   return response.data;
 };
 
+export const verifyCode = async (problem: string, code: string) => {
+  const response = await api.post("/debugger/verify-code", { problem, code });
+  return response.data;
+};
+
 /**
  * Analyze CV application using the Ghost Recruiter module
  * Supports PDF upload with job description

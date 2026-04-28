@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth-context.tsx";
 import { db } from "../lib/firebase.ts";
-import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { motion } from "motion/react";
 import { Trophy, Code, Target, BookOpen, ChevronRight } from "lucide-react";
 
@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<any>({ problemsSolved: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,11 +22,17 @@ export default function DashboardPage() {
           setSessions(JSON.parse(cachedSessions));
           setIsLoading(false);
         }
+        
+        const cachedStats = localStorage.getItem(`cache_stats_${user.uid}`);
+        if (cachedStats) {
+          setStats(JSON.parse(cachedStats));
+        }
       } catch (e) {
-        console.warn("Failed to load cached sessions:", e);
+        console.warn("Failed to load cached data:", e);
       }
 
       try {
+        // 1. Fetch Sessions
         const q = query(
           collection(db, `users/${user.uid}/sessions`),
           orderBy("createdAt", "desc"),
@@ -39,6 +46,15 @@ export default function DashboardPage() {
         
         setSessions(sessionData);
         localStorage.setItem(`cache_sessions_${user.uid}`, JSON.stringify(sessionData));
+
+        // 2. Fetch Stats
+        const statsRef = doc(db, `users/${user.uid}/stats`, "overview");
+        const statsSnap = await getDoc(statsRef);
+        if (statsSnap.exists()) {
+          const statsData = statsSnap.data();
+          setStats(statsData);
+          localStorage.setItem(`cache_stats_${user.uid}`, JSON.stringify(statsData));
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -49,7 +65,7 @@ export default function DashboardPage() {
     fetchData();
   }, [user]);
 
-  const solvedCount = sessions.filter(s => s.type === "debugger" && !!s.conceptIdentified).length;
+  const solvedCount = stats.problemsSolved || 0;
   
   // Level Logic
   const getLevel = (count: number) => {
@@ -107,7 +123,7 @@ export default function DashboardPage() {
         <div className="bg-[#111118] border border-[#2A2A3A] p-8 rounded-3xl relative overflow-hidden group">
           <div className="relative z-10">
             <BookOpen className="w-10 h-10 text-emerald-400 mb-4" />
-            <p className="text-4xl font-black text-white mb-1">{sessions.filter(s => s.type === "recruiter").length}</p>
+            <p className="text-4xl font-black text-white mb-1">{stats.cvsAnalyzed || sessions.filter(s => s.type === "recruiter").length}</p>
             <p className="text-slate-500 font-medium">CVs Analyzed</p>
           </div>
           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">

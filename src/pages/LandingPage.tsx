@@ -2,8 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Brain, Search, TrendingUp, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
+import { useAuth } from "../lib/auth-context.tsx";
 
 export default function LandingPage() {
+  const { user } = useAuth();
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -59,12 +61,18 @@ export default function LandingPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="flex flex-col sm:flex-row items-center gap-4"
         >
-          <Link to="/debugger" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-10 py-4 rounded-xl transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2 group active:scale-95">
-            Debug a Problem 
+          <Link 
+            to={user ? "/debugger" : "/auth"} 
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-10 py-4 rounded-xl transition-all shadow-xl shadow-indigo-500/20 flex items-center gap-2 group active:scale-95"
+          >
+            {user ? "Go to Debugger" : "Start Debugging"} 
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <Link to="/recruiter" className="border border-[#2A2A3A] hover:border-indigo-500 text-slate-400 hover:text-white font-semibold px-10 py-4 rounded-xl transition-all hover:bg-white/5 active:scale-95">
-            Review My CV
+          <Link 
+            to={user ? "/recruiter" : "/auth"} 
+            className="border border-[#2A2A3A] hover:border-indigo-500 text-slate-400 hover:text-white font-semibold px-10 py-4 rounded-xl transition-all hover:bg-white/5 active:scale-95"
+          >
+            {user ? "Review My CV" : "Analyze My CV"}
           </Link>
         </motion.div>
       </main>

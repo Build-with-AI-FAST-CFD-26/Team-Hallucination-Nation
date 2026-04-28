@@ -63,6 +63,10 @@ REQUIRED JSON RESPONSE (NO markdown, NO text outside JSON):
   "improved_lines": ["<improvement 1>", "<improvement 2>"],
   "top_strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
   "interview_questions": ["<Q1>", "<Q2>", "<Q3>", "<Q4>", "<Q5>"],
+  "roadmap": ["<Skill/Step 1 to learn>", "<Skill/Step 2 to learn>", "<Skill/Step 3 to learn>"],
+  "suggested_projects": [
+    { "title": "<Project Title>", "description": "<Short description of how this project bridges the gap>" }
+  ],
   "one_line_verdict": "<Pakistani recruiter tone, friendly but direct>"
 }
 
@@ -82,6 +86,14 @@ export const FALLBACK_RESPONSE = {
     'How do you approach learning new technologies?',
     'Describe a challenging project you worked on',
     'What are your career goals?'
+  ],
+  roadmap: [
+    'Master core programming fundamentals',
+    'Build 2-3 production-ready projects',
+    'Improve documentation and impact metrics'
+  ],
+  suggested_projects: [
+    { "title": "Full-Stack Portfolio", "description": "Build a comprehensive portfolio showcasing your skills with a modern stack." }
   ],
   one_line_verdict: 'Needs manual review due to system delay.',
   metadata: {

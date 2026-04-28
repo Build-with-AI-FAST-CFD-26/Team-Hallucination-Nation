@@ -8,6 +8,8 @@ export interface EvaluationResponse {
   improved_lines: string[];
   top_strengths: string[];
   interview_questions: string[];
+  roadmap?: string[];
+  suggested_projects?: { title: string; description: string }[];
   one_line_verdict: string;
   metadata: {
     evaluation_timestamp: string;
@@ -31,6 +33,8 @@ export interface AIProviderResponse {
   improved_lines: string[];
   top_strengths: string[];
   interview_questions: string[];
+  roadmap?: string[];
+  suggested_projects?: { title: string; description: string }[];
   one_line_verdict: string;
 }
 
